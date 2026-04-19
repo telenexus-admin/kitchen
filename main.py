@@ -333,11 +333,16 @@ def today_report(user=Depends(require_login)):
             COUNT(*) AS orders_count,
             COALESCE(SUM(total_amount), 0) AS total_sales,
             COALESCE(SUM(CASE WHEN payment_method = 'Cash' THEN total_amount ELSE 0 END), 0) AS cash_sales,
-            COALESCE(SUM(CASE WHEN payment_method = 'M-Pesa' THEN total_amount ELSE 0 END), 0) AS mpesa_sales
+            COALESCE(SUM(CASE WHEN payment_method = 'M-Pesa' THEN total_amount ELSE 0 END), 0) AS mpesa_sales,
+            COALESCE(SUM(CASE WHEN payment_method = 'Pay Later' THEN total_amount ELSE 0 END), 0) AS pay_later_sales
         FROM sales
         WHERE DATE(created_at) = ?
         """,
         (today,),
+    ).fetchone()
+
+    pay_later_pending = conn.execute(
+        "SELECT COUNT(*) AS cnt, COALESCE(SUM(amount), 0) AS total FROM pay_later WHERE status = 'pending'"
     ).fetchone()
 
     by_staff = conn.execute(
@@ -365,11 +370,50 @@ def today_report(user=Depends(require_login)):
     ).fetchall()
     conn.close()
 
+    summary = dict(totals)
+    summary["pay_later_count"] = pay_later_pending["cnt"]
+    summary["pay_later_pending_total"] = pay_later_pending["total"]
+
     return {
-        "summary": dict(totals),
+        "summary": summary,
         "by_staff": [dict(row) for row in by_staff],
         "recent_sales": [dict(row) for row in recent_sales],
     }
+
+
+@app.get("/api/pay-later")
+def staff_pay_later(user=Depends(require_login)):
+    conn = get_db()
+    rows = conn.execute(
+        """
+        SELECT pl.id, pl.customer_name, pl.customer_phone, pl.amount,
+               pl.status, pl.created_at, pl.paid_at,
+               s.receipt_no, u.name AS staff_name
+        FROM pay_later pl
+        JOIN sales s ON pl.sale_id = s.id
+        JOIN users u ON s.served_by = u.id
+        ORDER BY pl.id DESC
+        """
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+@app.post("/api/pay-later/{record_id}/mark-paid")
+def staff_mark_pay_later_paid(record_id: int, user=Depends(require_login)):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM pay_later WHERE id = ?", (record_id,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Record not found")
+    if row["status"] == "paid":
+        conn.close()
+        raise HTTPException(status_code=400, detail="Already marked as paid")
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute("UPDATE pay_later SET status = 'paid', paid_at = ? WHERE id = ?", (now, record_id))
+    conn.commit()
+    conn.close()
+    return {"message": "Marked as paid"}
 
 
 def _check_admin_token(x_admin_token: str = Header(default="")):
@@ -869,6 +913,30 @@ POS_HTML = """
         </div>
     </div>
 
+    <div style='padding:0 20px 20px;'>
+        <div class='panel'>
+            <h3 style='margin-top:0;'>Pay Later Records</h3>
+            <div id='payLaterSummary' style='color:#b45309;font-weight:600;margin-bottom:12px;'></div>
+            <div style='overflow-x:auto;'>
+                <table style='width:100%;border-collapse:collapse;font-size:14px;'>
+                    <thead>
+                        <tr style='border-bottom:2px solid #eaecf0;text-align:left;color:#667085;'>
+                            <th style='padding:8px 4px;'>Customer</th>
+                            <th style='padding:8px 4px;'>Phone</th>
+                            <th style='padding:8px 4px;'>Amount</th>
+                            <th style='padding:8px 4px;'>Receipt</th>
+                            <th style='padding:8px 4px;'>Status</th>
+                            <th style='padding:8px 4px;'>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id='payLaterTbody'>
+                        <tr><td colspan='6' style='text-align:center;padding:12px;color:#667085;'>Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class='modal-overlay' id='mpesaModal'>
         <div class='modal'>
             <h3>M-Pesa Payment</h3>
@@ -1085,8 +1153,56 @@ POS_HTML = """
                 <div>Total Sales: <strong>KES ${s.total_sales}</strong></div>
                 <div>Cash: <strong>KES ${s.cash_sales}</strong></div>
                 <div>M-Pesa: <strong>KES ${s.mpesa_sales}</strong></div>
-                <div style='color:#b45309;'>Pay Later: <strong>KES ${s.pay_later_sales || 0}</strong> (${s.pay_later_count || 0} pending)</div>
+                <div style='color:#b45309;'>Pay Later Today: <strong>KES ${s.pay_later_sales || 0}</strong></div>
+                <div style='color:#b45309;'>Pending (all): <strong>${s.pay_later_count || 0} records · KES ${s.pay_later_pending_total || 0} owed</strong></div>
             `;
+            await loadPayLaterTable();
+        }
+
+        async function loadPayLaterTable() {
+            const res = await fetch('/api/pay-later');
+            const records = await res.json();
+            const pending = records.filter(r => r.status === 'pending');
+            const tbody = document.getElementById('payLaterTbody');
+            const summary = document.getElementById('payLaterSummary');
+            const pendingTotal = pending.reduce((s, r) => s + r.amount, 0);
+            summary.textContent = pending.length === 0
+                ? 'No pending pay-later balances'
+                : `${pending.length} pending · KES ${pendingTotal} owed`;
+
+            if (!records.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#667085;padding:12px;">No pay-later records yet.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = records.map(r => `
+                <tr style="border-bottom:1px solid #eaecf0;">
+                    <td style="padding:8px 4px;">${r.customer_name}</td>
+                    <td style="padding:8px 4px;">${r.customer_phone}</td>
+                    <td style="padding:8px 4px;">KES ${r.amount}</td>
+                    <td style="padding:8px 4px;">${r.receipt_no}</td>
+                    <td style="padding:8px 4px;">
+                        <span style="color:${r.status === 'paid' ? '#16a34a' : '#b45309'};font-weight:600;">
+                            ${r.status === 'paid' ? '✓ Paid' : 'Pending'}
+                        </span>
+                    </td>
+                    <td style="padding:8px 4px;">
+                        ${r.status === 'pending'
+                            ? `<button onclick="markPaid(${r.id})" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:6px 12px;cursor:pointer;">Mark Paid</button>`
+                            : `<span style="color:#667085;font-size:12px;">${r.paid_at || ''}</span>`}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function markPaid(id) {
+            if (!confirm('Mark this pay-later as paid?')) return;
+            const res = await fetch('/api/pay-later/' + id + '/mark-paid', { method: 'POST' });
+            if (res.ok) {
+                await loadReport();
+            } else {
+                const err = await res.json();
+                alert(err.detail || 'Failed to mark as paid');
+            }
         }
 
         loadMenu();
