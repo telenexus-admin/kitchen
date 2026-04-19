@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ELITEMAKES KITCHEN | Admin Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: rgba(15,23,42,0.72);
+      --panel-2: rgba(255,255,255,0.06);
+      --panel-3: rgba(255,255,255,0.04);
+      --text: #e5eefc;
+      --muted: #93a4c3;
+      --line: rgba(255,255,255,0.08);
+      --blue: #4f8cff;
+      --blue-2: #77a8ff;
+      --cyan: #55d6ff; 
+      --green: #20c997;
+      --amber: #ffb020;
+      --red: #ff6b6b;
+      --shadow: 0 16px 40px rgba(0,0,0,0.35);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(79,140,255,0.22), transparent 22%),
+        radial-gradient(circle at left bottom, rgba(85,214,255,0.12), transparent 20%),
+        linear-gradient(135deg, #07101d 0%, #0b1220 42%, #0f172a 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Login overlay ── */
+    #loginOverlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(7,16,29,0.97);
+      backdrop-filter: blur(18px);
+    }
+    .login-card {
+      width: 380px; max-width: 92%;
+      background: rgba(15,23,42,0.92);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 36px 32px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .login-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+    .login-mark {
+      width: 52px; height: 52px; border-radius: 18px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      display: grid; place-items: center;
+      font-size: 26px; font-weight: 800; color: white;
+      box-shadow: 0 10px 22px rgba(79,140,255,0.35);
+    }
+    .login-brand h1 { margin: 0; font-size: 17px; }
+    .login-brand p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .login-card h2 { margin: 0 0 6px; font-size: 22px; }
+    .login-card > p { margin: 0 0 22px; color: var(--muted); font-size: 14px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 7px; font-weight: 600; }
+    .field input {
+      width: 100%; padding: 13px 16px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+      border-radius: 14px; color: var(--text); font-size: 14px; outline: none;
+    }
+    .field input:focus { border-color: var(--blue); }
+    .login-btn {
+      width: 100%; padding: 14px; margin-top: 8px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      border: 0; border-radius: 14px; color: #06111e;
+      font-weight: 800; font-size: 15px; cursor: pointer;
+    }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .login-error { color: var(--red); font-size: 13px; margin-top: 12px; min-height: 18px; }
+
+    /* ── Shell ── */
+    .shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+    .sidebar {
+      position: sticky; top: 0; height: 100vh;
+      padding: 24px 16px;
+      background: rgba(6,11,22,0.88);
+      backdrop-filter: blur(18px);
+      border-right: 1px solid var(--line);
+      display: flex; flex-direction: column;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 14px; padding: 12px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 1px solid var(--line);
+    }
+    .brand-mark {
+      width: 46px; height: 46px; border-radius: 16px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      font-size: 22px; font-weight: 800;
+      box-shadow: 0 8px 20px rgba(79,140,255,0.35);
+    }
+    .brand h1 { font-size: 14px; margin: 0; letter-spacing: 0.3px; }
+    .brand p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+
+    .menu { margin-top: 22px; display: grid; gap: 8px; }
+    .menu button {
+      width: 100%; display: flex; align-items: center; gap: 11px;
+      background: transparent; border: 1px solid transparent;
+      color: var(--muted); padding: 13px 14px; border-radius: 14px;
+      text-align: left; cursor: pointer; transition: 0.2s ease;
+      font-size: 13px; font-weight: 600;
+    }
+    .menu button:hover, .menu button.active {
+      background: rgba(255,255,255,0.08); color: white;
+      border-color: var(--line); transform: translateX(2px);
+    }
+
+    .sidebar-footer {
+      margin-top: auto; padding: 14px;
+      border-radius: 16px; border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+    }
+    .sidebar-footer p { margin: 0; font-size: 12px; color: var(--muted); }
+    .sidebar-footer strong { color: var(--text); display: block; margin-bottom: 4px; }
+    .logout-btn {
+      margin-top: 10px; width: 100%; padding: 10px;
+      background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.2);
+      color: var(--red); border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: 700;
+    }
+    .logout-btn:hover { background: rgba(255,107,107,0.22); }
+
+    .main { padding: 24px; overflow: auto; }
+
+    /* ── Topbar ── */
+    .topbar {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 16px; margin-bottom: 20px;
+    }
+    .headline h2 { margin: 0; font-size: clamp(24px,3.5vw,34px); letter-spacing: -0.03em; }
+    .headline p { margin: 7px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+    .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .glass-btn {
+      height: 44px; border-radius: 14px; border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06); color: var(--text);
+      padding: 0 16px; backdrop-filter: blur(14px);
+      display: inline-flex; align-items: center; gap: 8px;
+      cursor: pointer; font-weight: 700; font-size: 13px;
+    }
+    .glass-btn:hover { background: rgba(255,255,255,0.1); }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 0 3px rgba(32,201,151,0.25);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* ── Stat cards ── */
+    .grid-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin-bottom: 20px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line);
+      backdrop-filter: blur(18px); border-radius: var(--radius-xl); box-shadow: var(--shadow);
+    }
+    .stat-card { padding: 20px; position: relative; overflow: hidden; }
+    .stat-card::after {
+      content: ""; position: absolute; width: 110px; height: 110px;
+      right: -28px; top: -38px;
+      background: radial-gradient(circle, rgba(79,140,255,0.2), transparent 60%);
+      pointer-events: none;
+    }
+    .stat-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .icon-wrap {
+      width: 46px; height: 46px; border-radius: 14px;
+      display: grid; place-items: center;
+      background: rgba(79,140,255,0.14); color: var(--blue-2);
+      font-size: 20px; border: 1px solid rgba(79,140,255,0.18);
+      flex-shrink: 0;
+    }
+    .label { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .value { margin-top: 8px; font-size: clamp(22px,2.5vw,30px); font-weight: 800; letter-spacing: -0.04em; }
+    .trend {
+      margin-top: 8px; display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    }
+    .trend.up { background: rgba(32,201,151,0.12); color: #6ff4c9; }
+    .trend.down { background: rgba(255,107,107,0.12); color: #ff8c8c; }
+    .trend.neutral { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+    /* ── Panels ── */
+    .layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .split-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .panel-body { padding: 20px; }
+    .panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+    .panel-header h3 { margin: 0; font-size: 16px; }
+    .panel-header p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .chip {
+      padding: 6px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+      font-size: 11px; color: var(--muted); font-weight: 700; white-space: nowrap;
+    }
+
+    /* ── Hourly bars ── */
+    .bars {
+      height: 220px; display: flex; align-items: flex-end;
+      justify-content: space-between; gap: 6px; padding-top: 10px;
+    }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .bar-track {
+      width: 100%; max-width: 36px; height: 180px;
+      border-radius: 999px; background: rgba(255,255,255,0.05);
+      display: flex; align-items: flex-end; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .bar-fill {
+      width: 100%; border-radius: 999px;
+      background: linear-gradient(180deg, var(--cyan), var(--blue));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 6px 14px rgba(79,140,255,0.2);
+      transition: height 0.6s cubic-bezier(.4,0,.2,1);
+    }
+    .bar-fill.today { background: linear-gradient(180deg, #6ff4c9, var(--green)); }
+    .bar-label, .bar-value { font-size: 10px; color: var(--muted); text-align: center; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid var(--line); font-size: 13px; }
+    th { color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+    td strong { font-weight: 700; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 800;
+    }
+    .pill.blue { background: rgba(79,140,255,0.14); color: #aecdff; }
+    .pill.green { background: rgba(32,201,151,0.13); color: #7ef0cc; }
+    .pill.amber { background: rgba(255,176,32,0.14); color: #ffd17b; }
+    .pill.red { background: rgba(255,107,107,0.12); color: #ff9e9e; }
+    .pill.cyan { background: rgba(85,214,255,0.12); color: #9ceeff; }
+
+    /* ── Activity feed ── */
+    .feed { display: grid; gap: 10px; }
+    .feed-item {
+      padding: 13px 14px; border-radius: 16px;
+      background: var(--panel-3); border: 1px solid var(--line);
+    }
+    .feed-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 5px; }
+    .feed-top h4 { margin: 0; font-size: 13px; }
+    .feed-item p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+    /* ── Staff bars ── */
+    .staff-item {
+      padding: 13px 14px; border-radius: 16px;
+      background: var(--panel-3); border: 1px solid var(--line); margin-bottom: 10px;
+    }
+    .staff-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .staff-top h4 { margin: 0; font-size: 13px; }
+    .progress-track {
+      height: 8px; border-radius: 999px;
+      background: rgba(255,255,255,0.06); overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      transition: width 0.7s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Tab panels ── */
+    .stock-grid { display: none; }
+    .stock-grid.active { display: block; }
+    .daily-grid { display: none; }
+    .daily-grid.active { display: block; }
+    .paylater-grid { display: none; }
+    .paylater-grid.active { display: block !important; }
+
+    /* ── Menu manage tab ── */
+    .menumanage-grid { display: none; }
+    .menumanage-grid.active { display: block; }
+
+    /* ── Edit modal ── */
+    .modal-bg {
+      display: none; position: fixed; inset: 0; z-index: 9000;
+      background: rgba(7,16,29,0.82); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .edit-modal {
+      width: 460px; max-width: 95vw;
+      background: #0f172a; border: 1px solid var(--line);
+      border-radius: var(--radius-xl); padding: 28px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    }
+    .edit-modal h3 { margin: 0 0 4px; font-size: 18px; }
+    .edit-modal p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-field label { display: block; font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .form-field input, .form-field select {
+      width: 100%; padding: 11px 14px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+      border-radius: 12px; color: var(--text); font-size: 14px; outline: none;
+    }
+    .form-field input:focus, .form-field select:focus { border-color: var(--blue); }
+    .form-field select option { background: #0f172a; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-cancel {
+      flex: 1; padding: 12px; border-radius: 12px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+      color: var(--muted); cursor: pointer; font-weight: 700;
+    }
+    .modal-save {
+      flex: 2; padding: 12px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      border: 0; color: #06111e; cursor: pointer; font-weight: 800; font-size: 14px;
+    }
+    .modal-delete {
+      padding: 12px 16px; border-radius: 12px;
+      background: rgba(255,107,107,0.12); border: 1px solid rgba(255,107,107,0.2);
+      color: var(--red); cursor: pointer; font-weight: 700;
+    }
+    .modal-err { color: var(--red); font-size: 12px; margin-top: 10px; min-height: 16px; }
+    .add-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 20px; border-radius: 14px; margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      border: 0; color: #06111e; font-weight: 800; font-size: 13px; cursor: pointer;
+    }
+
+    /* ── Empty state ── */
+    .empty { text-align: center; color: var(--muted); padding: 32px 20px; font-size: 14px; }
+
+    /* ── Loading skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px; height: 16px; display: block;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .footer-note { color: var(--muted); font-size: 11px; text-align: center; margin-top: 20px; padding-bottom: 10px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 1100px) {
+      .grid-stats { grid-template-columns: repeat(2,1fr); }
+      .layout, .split-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 860px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .grid-stats { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 520px) {
+      .grid-stats { grid-template-columns: 1fr; }
+      .main { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login overlay ── -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-mark">🍽</div>
+      <div>
+        <h1>ELITEMAKES KITCHEN</h1>
+        <p>Admin Control Panel</p>
+      </div>
+    </div>
+    <h2>Sign in</h2>
+    <p>Enter your admin credentials to access the dashboard.</p>
+    <div class="field">
+      <label>Username</label>
+      <input id="loginUser" type="text" placeholder="admin" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign in to Dashboard</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ── Main shell ── -->
+<div class="shell" id="appShell" style="display:none">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">🍽</div>
+      <div>
+        <h1>ELITEMAKES KITCHEN</h1>
+        <p>Admin Dashboard</p>
+      </div>
+    </div>
+
+    <div class="menu" id="menuTabs">
+      <button class="active" data-target="daily">📊 Daily Sales</button>
+      <button data-target="paylater">🕒 Pay Later</button>
+      <button data-target="menumanage">🍽 Menu &amp; Stock</button>
+      <button data-target="stock">📦 Stock View</button>
+    </div>
+
+    <div class="sidebar-footer">
+      <strong id="adminName">Admin</strong>
+      <p id="lastRefresh">Not yet refreshed</p>
+      <button class="logout-btn" onclick="doLogout()">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="headline">
+        <h2 id="pageTitle">Daily Sales</h2>
+        <p id="pageSubtitle">Live data from the POS — updates every 30 seconds.</p>
+      </div>
+      <div class="toolbar">
+        <div class="live-dot"></div>
+        <button class="glass-btn" onclick="refreshAll()">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <!-- ── Daily Sales tab ── -->
+    <section class="daily-grid active tab-panel" id="daily">
+
+      <div class="grid-stats" id="statsRow">
+        <div class="card stat-card">
+          <div class="stat-top">
+            <div>
+              <div class="label">Today's Sales</div>
+              <div class="value" id="statTotalSales"><span class="skeleton" style="width:120px;margin-top:8px"></span></div>
+              <div class="trend neutral" id="statOrdersCount">— orders</div>
+            </div>
+            <div class="icon-wrap">💰</div>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-top">
+            <div>
+              <div class="label">Cash Collected</div>
+              <div class="value" id="statCash"><span class="skeleton" style="width:100px;margin-top:8px"></span></div>
+              <div class="trend neutral" id="statCashPct">—</div>
+            </div>
+            <div class="icon-wrap">🏦</div>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-top">
+            <div>
+              <div class="label">M-Pesa</div>
+              <div class="value" id="statMpesa"><span class="skeleton" style="width:100px;margin-top:8px"></span></div>
+              <div class="trend neutral" id="statMpesaPct">—</div>
+            </div>
+            <div class="icon-wrap">📱</div>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-top">
+            <div>
+              <div class="label">Avg Order Value</div>
+              <div class="value" id="statAvgOrder"><span class="skeleton" style="width:80px;margin-top:8px"></span></div>
+              <div class="trend neutral" id="statDate">Today</div>
+            </div>
+            <div class="icon-wrap">📈</div>
+          </div>
+        </div>
+        <div class="card stat-card" style="border-color:rgba(180,83,9,0.3)">
+          <div class="stat-top">
+            <div>
+              <div class="label">Pay Later (Today)</div>
+              <div class="value" id="statPayLater" style="color:#fbbf24"><span class="skeleton" style="width:80px;margin-top:8px"></span></div>
+              <div class="trend down" id="statPayLaterCount">— pending</div>
+            </div>
+            <div class="icon-wrap" style="background:rgba(180,83,9,0.15);color:#fbbf24;border-color:rgba(180,83,9,0.25)">🕒</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sales trend: hourly + weekly side by side -->
+      <div class="layout">
+        <div class="card panel-body">
+          <div class="panel-header">
+            <div>
+              <h3>Hourly sales — today</h3>
+              <p>Revenue by hour from the live POS.</p>
+            </div>
+            <div class="chip" id="hourlySumChip">Loading…</div>
+          </div>
+          <div class="bars" id="hourlyBars">
+            <div class="empty">Fetching data…</div>
+          </div>
+        </div>
+
+        <div class="card panel-body">
+          <div class="panel-header">
+            <div>
+              <h3>Last 7 days</h3>
+              <p>Daily totals — this week's pulse.</p>
+            </div>
+            <div class="chip" id="weeklySumChip">Loading…</div>
+          </div>
+          <div class="bars" id="weeklyBars">
+            <div class="empty">Fetching data…</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="split-2">
+        <!-- Top items today -->
+        <div class="card panel-body">
+          <div class="panel-header">
+            <div>
+              <h3>Top items today</h3>
+              <p>Best sellers by revenue from today's POS receipts.</p>
+            </div>
+            <div class="chip">Menu champions</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Category</th>
+                <th>Sold</th>
+                <th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody id="topItemsBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Staff performance today -->
+        <div class="card panel-body">
+          <div class="panel-header">
+            <div>
+              <h3>Staff today</h3>
+              <p>Who's pushing orders on today's shift.</p>
+            </div>
+            <div class="chip">Cashier output</div>
+          </div>
+          <div id="staffList"></div>
+        </div>
+      </div>
+
+      <!-- Recent transactions -->
+      <div class="card panel-body" style="margin-bottom:14px">
+        <div class="panel-header">
+          <div>
+            <h3>Recent transactions</h3>
+            <p>Latest 20 POS receipts — live feed from the backend.</p>
+          </div>
+          <div class="chip">Live receipts</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Receipt</th>
+              <th>Time</th>
+              <th>Amount</th>
+              <th>Payment</th>
+              <th>Cashier</th>
+            </tr>
+          </thead>
+          <tbody id="recentBody"></tbody>
+        </table>
+      </div>
+
+    </section>
+
+    <!-- ── Pay Later tab ── -->
+    <section class="paylater-grid tab-panel" id="paylater" style="display:none">
+      <div class="card panel-body" style="margin-bottom:14px">
+        <div class="panel-header">
+          <div>
+            <h3>Pay Later — outstanding balances</h3>
+            <p>All customers who took items on credit. Mark as paid when settled.</p>
+          </div>
+          <div id="payLaterSummaryChip" class="chip">Loading…</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Phone</th>
+              <th>Amount</th>
+              <th>Receipt</th>
+              <th>Cashier</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="payLaterBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Menu & Stock manage tab ── -->
+    <section class="menumanage-grid tab-panel" id="menumanage">
+      <div class="card panel-body">
+        <div class="panel-header">
+          <div>
+            <h3>Menu &amp; Stock management</h3>
+            <p>Edit prices, stock quantities, names, or toggle items on/off. Changes reflect instantly on the staff POS.</p>
+          </div>
+          <div class="chip" id="menuManageChip">Loading…</div>
+        </div>
+        <button class="add-btn" onclick="openAddModal()">+ Add new item</button>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Price (KES)</th>
+              <th>Stock Qty</th>
+              <th>Status</th>
+              <th>Edit</th>
+            </tr>
+          </thead>
+          <tbody id="menuManageBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Edit / Add modal ── -->
+    <div class="modal-bg" id="editModalBg">
+      <div class="edit-modal">
+        <h3 id="editModalTitle">Edit item</h3>
+        <p id="editModalSub">Changes go live on the staff POS immediately.</p>
+        <div class="form-grid">
+          <div class="form-field full">
+            <label>Item name</label>
+            <input id="editName" type="text" placeholder="e.g. Beef Stew" />
+          </div>
+          <div class="form-field">
+            <label>Category</label>
+            <select id="editCategory">
+              <option value="Food">Food</option>
+              <option value="Drinks">Drinks</option>
+              <option value="Breakfast">Breakfast</option>
+              <option value="Snacks">Snacks</option>
+              <option value="Special">Special</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Status</label>
+            <select id="editActive">
+              <option value="1">Active (visible on POS)</option>
+              <option value="0">Inactive (hidden from POS)</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Price (KES)</label>
+            <input id="editPrice" type="number" min="0" placeholder="0" />
+          </div>
+          <div class="form-field">
+            <label>Stock quantity</label>
+            <input id="editStock" type="number" min="0" placeholder="0" />
+          </div>
+        </div>
+        <div class="modal-err" id="editModalErr"></div>
+        <div class="modal-actions">
+          <button class="modal-cancel" onclick="closeEditModal()">Cancel</button>
+          <button class="modal-delete" id="editDeleteBtn" onclick="deleteItem()">Delete</button>
+          <button class="modal-save" onclick="saveItem()">Save changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Stock tab ── -->
+    <section class="stock-grid tab-panel" id="stock">
+      <div class="card panel-body">
+        <div class="panel-header">
+          <div>
+            <h3>Menu stock levels</h3>
+            <p>Live stock quantities from the POS database.</p>
+          </div>
+          <div class="chip">Inventory snapshot</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Category</th>
+              <th>Price (KES)</th>
+              <th>In Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="stockBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer-note">Powered by Telenexus Technologies LTD (0115472728) &nbsp;·&nbsp; ELITEMAKES KITCHEN POS</div>
+  </main>
+</div>
+
+<script>
+  const API = '';
+  let token = localStorage.getItem('em_admin_token') || '';
+  let refreshTimer = null;
+
+  // ── Auth ──
+  async function doLogin() {
+    const btn = document.getElementById('loginBtn');
+    const errEl = document.getElementById('loginError');
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    if (!user || !pass) { errEl.textContent = 'Enter username and password.'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    errEl.textContent = '';
+
+    try {
+      const res = await fetch(`${API}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Login failed'); }
+      const data = await res.json();
+      token = data.token;
+      localStorage.setItem('em_admin_token', token);
+      document.getElementById('adminName').textContent = data.name;
+      showApp();
+    } catch (e) {
+      errEl.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sign in to Dashboard';
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') doLogin();
+  });
+
+  function showApp() {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('appShell').style.display = 'grid';
+    refreshAll();
+    refreshTimer = setInterval(refreshAll, 30000);
+  }
+
+  function doLogout() {
+    clearInterval(refreshTimer);
+    token = '';
+    localStorage.removeItem('em_admin_token');
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('appShell').style.display = 'none';
+  }
+
+  async function apiGet(path) {
+    const res = await fetch(`${API}${path}`, { headers: { 'X-Admin-Token': token } });
+    if (res.status === 401) { doLogout(); throw new Error('Session expired'); }
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    return res.json();
+  }
+
+  // ── Tabs ──
+  document.getElementById('menuTabs').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#menuTabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.dataset.target;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(target).classList.add('active');
+    document.getElementById('pageTitle').textContent = btn.textContent.slice(3);
+  });
+
+  // ── Helpers ──
+  function kes(n) {
+    return 'KES ' + Number(n).toLocaleString('en-KE', { maximumFractionDigits: 0 });
+  }
+
+  function pct(part, total) {
+    if (!total) return '0%';
+    return Math.round((part / total) * 100) + '%';
+  }
+
+  function renderBars(container, items, labelKey, valueKey, highlightLast = false) {
+    if (!items.length) { container.innerHTML = '<div class="empty">No data yet for this period.</div>'; return; }
+    const max = Math.max(...items.map(i => i[valueKey]), 1);
+    container.innerHTML = items.map((item, idx) => {
+      const h = Math.max(4, Math.round((item[valueKey] / max) * 100));
+      const isLast = highlightLast && idx === items.length - 1;
+      const label = item[labelKey];
+      const shortLabel = label.length > 5 ? label.slice(5) : label; // for dates, show MM-DD
+      return `
+        <div class="bar-col">
+          <div class="bar-value">${item[valueKey] > 0 ? Math.round(item[valueKey] / 1000) + 'k' : ''}</div>
+          <div class="bar-track">
+            <div class="bar-fill${isLast ? ' today' : ''}" style="height:${h}%"></div>
+          </div>
+          <div class="bar-label">${shortLabel}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Refresh all data ──
+  async function refreshAll() {
+    try {
+      const [todayData, weeklyData, stockData, payLaterData] = await Promise.all([
+        apiGet('/api/admin/today'),
+        apiGet('/api/admin/weekly'),
+        apiGet('/api/admin/stock'),
+        apiGet('/api/admin/pay-later'),
+      ]);
+      renderToday(todayData);
+      renderWeekly(weeklyData);
+      renderStock(stockData);
+      renderMenuManage(stockData);
+      renderPayLater(payLaterData);
+      document.getElementById('lastRefresh').textContent =
+        'Updated ' + new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      if (e.message !== 'Session expired') console.error(e);
+    }
+  }
+
+  function renderToday(data) {
+    const s = data.summary;
+    const total = s.total_sales || 0;
+    const orders = s.orders_count || 0;
+    const cash = s.cash_sales || 0;
+    const mpesa = s.mpesa_sales || 0;
+    const avg = orders ? Math.round(total / orders) : 0;
+
+    document.getElementById('statTotalSales').textContent = kes(total);
+    document.getElementById('statOrdersCount').textContent = `${orders} order${orders !== 1 ? 's' : ''} today`;
+    document.getElementById('statOrdersCount').className = 'trend ' + (orders > 0 ? 'up' : 'neutral');
+
+    document.getElementById('statCash').textContent = kes(cash);
+    document.getElementById('statCashPct').textContent = pct(cash, total) + ' of sales';
+
+    document.getElementById('statMpesa').textContent = kes(mpesa);
+    document.getElementById('statMpesaPct').textContent = pct(mpesa, total) + ' of sales';
+
+    document.getElementById('statAvgOrder').textContent = kes(avg);
+    document.getElementById('statDate').textContent = new Date().toLocaleDateString('en-KE', { weekday: 'short', day: 'numeric', month: 'short' });
+
+    const payLaterAmt = s.pay_later_sales || 0;
+    const payLaterCnt = s.pay_later_count || 0;
+    document.getElementById('statPayLater').textContent = kes(payLaterAmt);
+    document.getElementById('statPayLaterCount').textContent = `${payLaterCnt} pending today`;
+    document.getElementById('statPayLaterCount').className = 'trend ' + (payLaterCnt > 0 ? 'down' : 'neutral');
+
+    // Hourly bars
+    const hourlyContainer = document.getElementById('hourlyBars');
+    if (data.hourly && data.hourly.length) {
+      // Fill missing hours with 0
+      const hourMap = {};
+      data.hourly.forEach(h => { hourMap[h.hour] = h.sales; });
+      const maxH = Math.max(...data.hourly.map(h => parseInt(h.hour)), 0);
+      const minH = Math.min(...data.hourly.map(h => parseInt(h.hour)), new Date().getHours());
+      const filled = [];
+      for (let h = Math.max(6, minH); h <= Math.min(22, Math.max(maxH, new Date().getHours())); h++) {
+        const hStr = String(h).padStart(2, '0');
+        filled.push({ hour: hStr, sales: hourMap[hStr] || 0 });
+      }
+      document.getElementById('hourlySumChip').textContent = kes(total) + ' total';
+      renderBars(hourlyContainer, filled, 'hour', 'sales', true);
+    } else {
+      hourlyContainer.innerHTML = '<div class="empty">No transactions recorded yet today.</div>';
+      document.getElementById('hourlySumChip').textContent = 'No data yet';
+    }
+
+    // Top items
+    const tbody = document.getElementById('topItemsBody');
+    if (data.top_items && data.top_items.length) {
+      tbody.innerHTML = data.top_items.map(item => `
+        <tr>
+          <td><strong>${item.name}</strong></td>
+          <td><span class="pill cyan">${item.category}</span></td>
+          <td>${item.qty_sold}</td>
+          <td>${kes(item.revenue)}</td>
+        </tr>`).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">No sales yet today.</td></tr>';
+    }
+
+    // Staff
+    const staffEl = document.getElementById('staffList');
+    if (data.by_staff && data.by_staff.length) {
+      const maxS = Math.max(...data.by_staff.map(s => s.total_sales), 1);
+      staffEl.innerHTML = data.by_staff.map(s => `
+        <div class="staff-item">
+          <div class="staff-top">
+            <h4>${s.staff_name}</h4>
+            <span class="pill green">${kes(s.total_sales)}</span>
+          </div>
+          <p style="margin:0 0 8px;color:var(--muted);font-size:12px">${s.orders_count} order${s.orders_count !== 1 ? 's' : ''}</p>
+          <div class="progress-track">
+            <div class="progress-fill" style="width:${Math.round((s.total_sales / maxS) * 100)}%"></div>
+          </div>
+        </div>`).join('');
+    } else {
+      staffEl.innerHTML = '<div class="empty">No staff activity yet.</div>';
+    }
+
+    // Recent transactions
+    const recBody = document.getElementById('recentBody');
+    if (data.recent && data.recent.length) {
+      recBody.innerHTML = data.recent.map(tx => {
+        const time = tx.created_at ? tx.created_at.slice(11, 16) : '—';
+        const pmClass = tx.payment_method === 'M-Pesa' ? 'amber' : tx.payment_method === 'Cash' ? 'green' : 'blue';
+        return `
+          <tr>
+            <td><strong>${tx.receipt_no}</strong></td>
+            <td>${time}</td>
+            <td>${kes(tx.total_amount)}</td>
+            <td><span class="pill ${pmClass}">${tx.payment_method}</span></td>
+            <td>${tx.staff_name}</td>
+          </tr>`;
+      }).join('');
+    } else {
+      recBody.innerHTML = '<tr><td colspan="5" class="empty">No transactions yet today.</td></tr>';
+    }
+  }
+
+  function renderWeekly(rows) {
+    const container = document.getElementById('weeklyBars');
+    const weekTotal = rows.reduce((acc, r) => acc + r.sales, 0);
+    document.getElementById('weeklySumChip').textContent = kes(weekTotal) + ' / 7 days';
+    renderBars(container, rows, 'day', 'sales', true);
+  }
+
+  function renderPayLater(records) {
+    const tbody = document.getElementById('payLaterBody');
+    const pending = records.filter(r => r.status === 'pending');
+    const pendingTotal = pending.reduce((s, r) => s + r.amount, 0);
+    document.getElementById('payLaterSummaryChip').textContent =
+      `${pending.length} pending · ${kes(pendingTotal)} owed`;
+
+    if (!records.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty">No pay-later records yet.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = records.map(r => {
+      const isPending = r.status === 'pending';
+      const dateStr = r.created_at ? r.created_at.slice(0, 16) : '—';
+      const statusPill = isPending
+        ? `<span class="pill amber">Pending</span>`
+        : `<span class="pill green">Paid</span>`;
+      const actionBtn = isPending
+        ? `<button onclick="markPaid(${r.id})" style="
+            padding:7px 14px; border-radius:10px; border:1px solid rgba(32,201,151,0.35);
+            background:rgba(32,201,151,0.12); color:#7ef0cc; cursor:pointer; font-size:12px; font-weight:700;">
+            ✓ Mark Paid
+          </button>`
+        : `<span style="color:var(--muted);font-size:12px">${r.paid_at ? r.paid_at.slice(0,16) : ''}</span>`;
+      return `
+        <tr>
+          <td><strong>${r.customer_name}</strong></td>
+          <td>${r.customer_phone}</td>
+          <td style="color:${isPending ? '#fbbf24' : 'inherit'}">${kes(r.amount)}</td>
+          <td>${r.receipt_no}</td>
+          <td>${r.staff_name}</td>
+          <td>${dateStr}</td>
+          <td>${statusPill}</td>
+          <td>${actionBtn}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  async function markPaid(id) {
+    try {
+      const res = await fetch(`${API}/api/admin/pay-later/${id}/mark-paid`, {
+        method: 'POST',
+        headers: { 'X-Admin-Token': token },
+      });
+      if (!res.ok) { const d = await res.json(); alert(d.detail || 'Error'); return; }
+      await refreshAll();
+    } catch (e) { console.error(e); }
+  }
+
+  function renderStock(items) {
+    const tbody = document.getElementById('stockBody');
+    if (!items.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No menu items found.</td></tr>'; return; }
+    tbody.innerHTML = items.map(item => {
+      const lowStock = item.stock_qty <= 10;
+      const statusClass = !item.active ? 'red' : lowStock ? 'amber' : 'green';
+      const statusLabel = !item.active ? 'Inactive' : lowStock ? 'Low' : 'OK';
+      return `
+        <tr>
+          <td><strong>${item.name}</strong></td>
+          <td>${item.category}</td>
+          <td>${item.price}</td>
+          <td>${item.stock_qty}</td>
+          <td><span class="pill ${statusClass}">${statusLabel}</span></td>
+        </tr>`;
+    }).join('');
+  }
+
+  // ── Menu management ──
+  let _menuItems = [];
+  let _editingId = null;
+
+  function renderMenuManage(items) {
+    _menuItems = items;
+    document.getElementById('menuManageChip').textContent = `${items.length} items`;
+    const tbody = document.getElementById('menuManageBody');
+    if (!items.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">No menu items found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = items.map(item => {
+      const activeClass = item.active ? 'green' : 'red';
+      const activeLabel = item.active ? 'Active' : 'Inactive';
+      return `
+        <tr>
+          <td><strong>${item.name}</strong></td>
+          <td>${item.category}</td>
+          <td>${item.price}</td>
+          <td>${item.stock_qty}</td>
+          <td><span class="pill ${activeClass}">${activeLabel}</span></td>
+          <td>
+            <button onclick="openEditModal(${item.id})" style="
+              padding:7px 14px; border-radius:10px; border:1px solid var(--line);
+              background:rgba(255,255,255,0.06); color:var(--text);
+              cursor:pointer; font-size:12px; font-weight:700;">
+              ✏ Edit
+            </button>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function openEditModal(id) {
+    const item = _menuItems.find(i => i.id === id);
+    if (!item) return;
+    _editingId = id;
+    document.getElementById('editModalTitle').textContent = 'Edit item';
+    document.getElementById('editModalSub').textContent = 'Changes go live on the staff POS immediately.';
+    document.getElementById('editName').value = item.name;
+    document.getElementById('editCategory').value = item.category;
+    document.getElementById('editPrice').value = item.price;
+    document.getElementById('editStock').value = item.stock_qty;
+    document.getElementById('editActive').value = item.active ? '1' : '0';
+    document.getElementById('editDeleteBtn').style.display = 'inline-flex';
+    document.getElementById('editModalErr').textContent = '';
+    document.getElementById('editModalBg').classList.add('open');
+  }
+
+  function openAddModal() {
+    _editingId = null;
+    document.getElementById('editModalTitle').textContent = 'Add new item';
+    document.getElementById('editModalSub').textContent = 'New item will appear on the staff POS immediately.';
+    document.getElementById('editName').value = '';
+    document.getElementById('editCategory').value = 'Food';
+    document.getElementById('editPrice').value = '';
+    document.getElementById('editStock').value = '';
+    document.getElementById('editActive').value = '1';
+    document.getElementById('editDeleteBtn').style.display = 'none';
+    document.getElementById('editModalErr').textContent = '';
+    document.getElementById('editModalBg').classList.add('open');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModalBg').classList.remove('open');
+    _editingId = null;
+  }
+
+  async function saveItem() {
+    const name = document.getElementById('editName').value.trim();
+    const category = document.getElementById('editCategory').value;
+    const price = document.getElementById('editPrice').value;
+    const stock_qty = document.getElementById('editStock').value;
+    const active = document.getElementById('editActive').value;
+    const errEl = document.getElementById('editModalErr');
+
+    if (!name) { errEl.textContent = 'Name is required.'; return; }
+    if (price === '' || isNaN(price)) { errEl.textContent = 'Enter a valid price.'; return; }
+    if (stock_qty === '' || isNaN(stock_qty)) { errEl.textContent = 'Enter a valid stock quantity.'; return; }
+    errEl.textContent = '';
+
+    const payload = { name, category, price: parseFloat(price), stock_qty: parseInt(stock_qty), active: parseInt(active) };
+
+    try {
+      let res;
+      if (_editingId) {
+        res = await fetch(`${API}/api/admin/menu/${_editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await fetch(`${API}/api/admin/menu`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+          body: JSON.stringify(payload),
+        });
+      }
+      if (!res.ok) { const d = await res.json(); errEl.textContent = d.detail || 'Save failed'; return; }
+      closeEditModal();
+      const fresh = await apiGet('/api/admin/stock');
+      renderMenuManage(fresh);
+      renderStock(fresh);
+    } catch (e) { errEl.textContent = 'Network error. Try again.'; }
+  }
+
+  async function deleteItem() {
+    if (!_editingId) return;
+    const item = _menuItems.find(i => i.id === _editingId);
+    if (!confirm(`Delete "${item?.name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API}/api/admin/menu/${_editingId}`, {
+        method: 'DELETE',
+        headers: { 'X-Admin-Token': token },
+      });
+      if (!res.ok) { const d = await res.json(); alert(d.detail || 'Delete failed'); return; }
+      closeEditModal();
+      const fresh = await apiGet('/api/admin/stock');
+      renderMenuManage(fresh);
+      renderStock(fresh);
+    } catch (e) { alert('Network error. Try again.'); }
+  }
+
+  // ── Init: try stored token ──
+  (async function init() {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API}/api/admin/today`, { headers: { 'X-Admin-Token': token } });
+      if (res.ok) { showApp(); return; }
+    } catch (_) {}
+    token = '';
+    localStorage.removeItem('em_admin_token');
+  })();
+</script>
+</body>
+</html>
