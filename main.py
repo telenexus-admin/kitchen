@@ -213,7 +213,10 @@ def admin_dashboard():
 
 
 @app.get("/pos", response_class=HTMLResponse)
-def pos_page(request: Request, user=Depends(require_login)):
+def pos_page(request: Request):
+    user = current_user(request)
+    if not user:
+        return RedirectResponse(url="/", status_code=302)
     return HTMLResponse(POS_HTML.replace("{{username}}", user["name"]))
 
 
