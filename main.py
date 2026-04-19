@@ -327,6 +327,8 @@ def today_report(user=Depends(require_login)):
     today = date.today().strftime("%Y-%m-%d")
     conn = get_db()
 
+    uid = user["id"]
+
     totals = conn.execute(
         """
         SELECT
@@ -336,37 +338,30 @@ def today_report(user=Depends(require_login)):
             COALESCE(SUM(CASE WHEN payment_method = 'M-Pesa' THEN total_amount ELSE 0 END), 0) AS mpesa_sales,
             COALESCE(SUM(CASE WHEN payment_method = 'Pay Later' THEN total_amount ELSE 0 END), 0) AS pay_later_sales
         FROM sales
-        WHERE DATE(created_at) = ?
+        WHERE DATE(created_at) = ? AND served_by = ?
         """,
-        (today,),
+        (today, uid),
     ).fetchone()
 
     pay_later_pending = conn.execute(
-        "SELECT COUNT(*) AS cnt, COALESCE(SUM(amount), 0) AS total FROM pay_later WHERE status = 'pending'"
-    ).fetchone()
-
-    by_staff = conn.execute(
         """
-        SELECT u.name AS staff_name, COUNT(s.id) AS orders_count, COALESCE(SUM(s.total_amount), 0) AS total_sales
-        FROM sales s
-        JOIN users u ON s.served_by = u.id
-        WHERE DATE(s.created_at) = ?
-        GROUP BY u.name
-        ORDER BY total_sales DESC
+        SELECT COUNT(*) AS cnt, COALESCE(SUM(pl.amount), 0) AS total
+        FROM pay_later pl
+        JOIN sales s ON pl.sale_id = s.id
+        WHERE pl.status = 'pending' AND s.served_by = ?
         """,
-        (today,),
-    ).fetchall()
+        (uid,),
+    ).fetchone()
 
     recent_sales = conn.execute(
         """
-        SELECT s.receipt_no, s.total_amount, s.payment_method, s.mpesa_phone, s.created_at, u.name AS staff_name
+        SELECT s.receipt_no, s.total_amount, s.payment_method, s.mpesa_phone, s.created_at
         FROM sales s
-        JOIN users u ON s.served_by = u.id
-        WHERE DATE(s.created_at) = ?
+        WHERE DATE(s.created_at) = ? AND s.served_by = ?
         ORDER BY s.id DESC
         LIMIT 20
         """,
-        (today,),
+        (today, uid),
     ).fetchall()
     conn.close()
 
@@ -376,7 +371,6 @@ def today_report(user=Depends(require_login)):
 
     return {
         "summary": summary,
-        "by_staff": [dict(row) for row in by_staff],
         "recent_sales": [dict(row) for row in recent_sales],
     }
 
@@ -387,13 +381,13 @@ def staff_pay_later(user=Depends(require_login)):
     rows = conn.execute(
         """
         SELECT pl.id, pl.customer_name, pl.customer_phone, pl.amount,
-               pl.status, pl.created_at, pl.paid_at,
-               s.receipt_no, u.name AS staff_name
+               pl.status, pl.created_at, pl.paid_at, s.receipt_no
         FROM pay_later pl
         JOIN sales s ON pl.sale_id = s.id
-        JOIN users u ON s.served_by = u.id
+        WHERE s.served_by = ?
         ORDER BY pl.id DESC
-        """
+        """,
+        (user["id"],),
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
