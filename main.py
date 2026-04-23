@@ -717,11 +717,7 @@ LOGIN_HTML = """
             <button type='submit'>Login</button>
         </form>
         <div class='demo'>
-            Demo logins:<br />
-            staff1 / 1234<br />
-            staff2 / 1234<br />
-            admin / admin123
-        </div>
+        
     </div>
 </body>
 </html>
